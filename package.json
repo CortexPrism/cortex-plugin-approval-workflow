@@ -1,7 +1,7 @@
 {
   "name": "cortex-plugin-approval-workflow",
-  "version": "1.0.0",
-  "description": "Human-in-the-Loop Approval — pauses agent execution at critical decision points and routes to a human reviewer",
+  "version": "1.0.1",
+  "description": "Human-in-the-Loop Approval \u2014 pauses agent execution at critical decision points and routes to a human reviewer",
   "type": "module",
   "main": "mod.ts",
   "scripts": {

@@ -1,6 +1,6 @@
 {
   "name": "cortex-plugin-approval-workflow",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Human-in-the-Loop Approval \u2014 pauses agent execution at critical decision points and routes to a human reviewer via Slack/Discord/Web UI with diff previews and one-click approve/deny",
   "kind": "esm",
   "entryPoint": "mod.ts",
@@ -10,7 +10,6 @@
   "repository": "https://github.com/CortexPrism/cortex-plugin-approval-workflow",
   "capabilities": [
     "tools",
-    "middleware:pre",
     "events:listener"
   ],
   "tools": [
@@ -204,5 +203,8 @@
       "Claude Code (Anthropic) \u2014 scaffold and implementation"
     ],
     "humanReview": true
-  }
+  },
+  "events": [
+    "tool:pre-execute"
+  ]
 }

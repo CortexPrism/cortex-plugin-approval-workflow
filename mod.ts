@@ -560,32 +560,6 @@ export async function onUnload(_ctx: PluginContext): Promise<void> {
   timeoutHandles.clear();
 }
 
-export async function preMiddleware(
-  toolName: string,
-  _args: Record<string, unknown>,
-  _ctx: ToolContext,
-): Promise<ToolCallResult | void> {
-  const start = Date.now();
-
-  const rule = pluginConfig.policyRules.find((r) => r.tool_name === toolName && r.enabled);
-  if (!rule) {
-    return;
-  }
-
-  const threshold = getApprovalThreshold(rule.min_risk);
-  const blocking = riskExceedsThreshold(rule.min_risk, threshold);
-
-  if (blocking) {
-    return makeResult(
-      'preMiddleware',
-      false,
-      '',
-      start,
-      `Tool '${toolName}' requires human approval (min risk: ${rule.min_risk}). ` +
-      'Create an approval_request before executing this tool.',
-    );
-  }
-}
 
 export const tools: Tool[] = [
   approvalRequestTool,
