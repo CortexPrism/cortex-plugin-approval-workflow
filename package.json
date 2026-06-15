@@ -1,0 +1,40 @@
+{
+  "name": "cortex-plugin-approval-workflow",
+  "version": "1.0.0",
+  "description": "Human-in-the-Loop Approval — pauses agent execution at critical decision points and routes to a human reviewer",
+  "type": "module",
+  "main": "mod.ts",
+  "scripts": {
+    "dev": "node --watch mod.ts",
+    "test": "node --test test/**/*.test.js",
+    "fmt": "prettier --write .",
+    "fmt:check": "prettier --check .",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "cortex",
+    "plugin",
+    "cortex-plugin",
+    "esm",
+    "approval",
+    "human-in-the-loop",
+    "workflow"
+  ],
+  "author": "CortexPrism",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CortexPrism/cortex-plugin-approval-workflow.git"
+  },
+  "dependencies": {
+    "@cortexprism/plugin-sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
