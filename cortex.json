@@ -1,7 +1,7 @@
 {
   "name": "cortex-plugin-approval-workflow",
   "version": "1.0.0",
-  "description": "Human-in-the-Loop Approval — pauses agent execution at critical decision points and routes to a human reviewer via Slack/Discord/Web UI with diff previews and one-click approve/deny",
+  "description": "Human-in-the-Loop Approval \u2014 pauses agent execution at critical decision points and routes to a human reviewer via Slack/Discord/Web UI with diff previews and one-click approve/deny",
   "kind": "esm",
   "entryPoint": "mod.ts",
   "runtime": "deno",
@@ -123,70 +123,86 @@
         {
           "name": "since",
           "type": "string",
-          "description": "ISO date filter — only include requests created after this date",
+          "description": "ISO date filter \u2014 only include requests created after this date",
           "required": false
         }
       ]
     }
   ],
-  "ui": [
-    {
-      "section": "General",
-      "fields": [
-        {
-          "name": "defaultTimeoutMinutes",
-          "type": "number",
-          "label": "Default Timeout (minutes)",
-          "description": "Minutes before a pending request times out",
-          "default": 30
-        },
-        {
-          "name": "autoDenyOnTimeout",
-          "type": "boolean",
-          "label": "Auto-Deny on Timeout",
-          "description": "Automatically deny requests when the timeout expires",
-          "default": true
-        },
-        {
-          "name": "requireApprovalFor",
-          "type": "select",
-          "label": "Require Approval For",
-          "description": "Minimum risk level that requires human approval",
-          "default": "high_and_critical",
-          "options": [
-            { "label": "Critical Only", "value": "critical_only" },
-            { "label": "High & Critical", "value": "high_and_critical" },
-            { "label": "Medium+", "value": "medium_and_above" },
-            { "label": "All", "value": "all" }
-          ]
-        }
-      ]
-    },
-    {
-      "section": "Notifications",
-      "fields": [
-        {
-          "name": "notifySlack",
-          "type": "text",
-          "label": "Slack Webhook URL",
-          "description": "Send approval notifications to this Slack webhook",
-          "required": false
-        },
-        {
-          "name": "notifyDiscord",
-          "type": "text",
-          "label": "Discord Webhook URL",
-          "description": "Send approval notifications to this Discord webhook",
-          "required": false
-        }
-      ]
-    }
-  ],
+  "ui": {
+    "settings": [
+      {
+        "section": "General",
+        "fields": [
+          {
+            "type": "number",
+            "label": "Default Timeout (minutes)",
+            "description": "Minutes before a pending request times out",
+            "default": 30,
+            "key": "defaultTimeoutMinutes"
+          },
+          {
+            "type": "boolean",
+            "label": "Auto-Deny on Timeout",
+            "description": "Automatically deny requests when the timeout expires",
+            "default": true,
+            "key": "autoDenyOnTimeout"
+          },
+          {
+            "type": "select",
+            "label": "Require Approval For",
+            "description": "Minimum risk level that requires human approval",
+            "default": "high_and_critical",
+            "options": [
+              {
+                "label": "Critical Only",
+                "value": "critical_only"
+              },
+              {
+                "label": "High & Critical",
+                "value": "high_and_critical"
+              },
+              {
+                "label": "Medium+",
+                "value": "medium_and_above"
+              },
+              {
+                "label": "All",
+                "value": "all"
+              }
+            ],
+            "key": "requireApprovalFor"
+          }
+        ]
+      },
+      {
+        "section": "Notifications",
+        "fields": [
+          {
+            "type": "text",
+            "label": "Slack Webhook URL",
+            "description": "Send approval notifications to this Slack webhook",
+            "required": false,
+            "key": "notifySlack"
+          },
+          {
+            "type": "text",
+            "label": "Discord Webhook URL",
+            "description": "Send approval notifications to this Discord webhook",
+            "required": false,
+            "key": "notifyDiscord"
+          }
+        ]
+      }
+    ]
+  },
   "peerDependencies": {
     "cortex": ">=1.0.0"
   },
   "aiDisclosure": {
-    "tools": ["Claude Code (Anthropic) — scaffold and implementation"],
+    "tools": [
+      "Claude Code (Anthropic) \u2014 scaffold and implementation"
+    ],
     "humanReview": true
   }
 }
