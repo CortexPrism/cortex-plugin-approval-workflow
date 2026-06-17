@@ -1,4 +1,4 @@
-import type { Tool, ToolContext, PluginContext, ToolCallResult } from 'cortex/plugins';
+import type { PluginContext, Tool, ToolCallResult, ToolContext } from './types.ts';
 
 interface ApprovalRequest {
   id: string;
@@ -67,7 +67,9 @@ function generateRequestId(): string {
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${
+    hex.slice(20, 32)
+  }`;
 }
 
 function riskExceedsThreshold(riskLevel: string, threshold: string): boolean {
@@ -138,11 +140,36 @@ const approvalRequestTool: Tool = {
     name: 'approval_request',
     description: 'Create an approval request for a pending action',
     params: [
-      { name: 'action', type: 'string', description: 'Description of what needs approval', required: true },
-      { name: 'details', type: 'string', description: 'Diff, command, or change details', required: true },
-      { name: 'risk_level', type: 'string', description: 'Risk level: low, medium, high, or critical', required: false },
-      { name: 'timeout_minutes', type: 'number', description: 'Minutes before timeout', required: false },
-      { name: 'auto_deny_on_timeout', type: 'boolean', description: 'Auto-deny on timeout', required: false },
+      {
+        name: 'action',
+        type: 'string',
+        description: 'Description of what needs approval',
+        required: true,
+      },
+      {
+        name: 'details',
+        type: 'string',
+        description: 'Diff, command, or change details',
+        required: true,
+      },
+      {
+        name: 'risk_level',
+        type: 'string',
+        description: 'Risk level: low, medium, high, or critical',
+        required: false,
+      },
+      {
+        name: 'timeout_minutes',
+        type: 'number',
+        description: 'Minutes before timeout',
+        required: false,
+      },
+      {
+        name: 'auto_deny_on_timeout',
+        type: 'boolean',
+        description: 'Auto-deny on timeout',
+        required: false,
+      },
     ],
     capabilities: ['tools'],
   },
@@ -152,12 +179,24 @@ const approvalRequestTool: Tool = {
     try {
       const action = args.action;
       if (!action || typeof action !== 'string') {
-        return makeResult('approval_request', false, '', start, 'action must be a non-empty string');
+        return makeResult(
+          'approval_request',
+          false,
+          '',
+          start,
+          'action must be a non-empty string',
+        );
       }
 
       const details = args.details;
       if (!details || typeof details !== 'string') {
-        return makeResult('approval_request', false, '', start, 'details must be a non-empty string');
+        return makeResult(
+          'approval_request',
+          false,
+          '',
+          start,
+          'details must be a non-empty string',
+        );
       }
 
       let riskLevel = (args.risk_level as string) ?? 'medium';
@@ -173,7 +212,8 @@ const approvalRequestTool: Tool = {
           JSON.stringify({
             id: null,
             status: 'auto_approved',
-            message: `Risk level '${riskLevel}' is below threshold '${threshold}'. No approval required.`,
+            message:
+              `Risk level '${riskLevel}' is below threshold '${threshold}'. No approval required.`,
           }),
           start,
         );
@@ -221,8 +261,15 @@ const approvalRequestTool: Tool = {
         start,
       );
     } catch (error) {
-      return makeResult('approval_request', false, '', start,
-        `Failed to create approval request: ${error instanceof Error ? error.message : String(error)}`);
+      return makeResult(
+        'approval_request',
+        false,
+        '',
+        start,
+        `Failed to create approval request: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   },
 };
@@ -232,7 +279,12 @@ const approvalCheckTool: Tool = {
     name: 'approval_check',
     description: 'Check the status of an approval request',
     params: [
-      { name: 'request_id', type: 'string', description: 'The ID of the approval request', required: true },
+      {
+        name: 'request_id',
+        type: 'string',
+        description: 'The ID of the approval request',
+        required: true,
+      },
     ],
     capabilities: ['tools'],
   },
@@ -242,12 +294,24 @@ const approvalCheckTool: Tool = {
     try {
       const requestId = args.request_id;
       if (!requestId || typeof requestId !== 'string') {
-        return makeResult('approval_check', false, '', start, 'request_id must be a non-empty string');
+        return makeResult(
+          'approval_check',
+          false,
+          '',
+          start,
+          'request_id must be a non-empty string',
+        );
       }
 
       const request = approvalQueue.get(requestId as string);
       if (!request) {
-        return makeResult('approval_check', false, '', start, `Approval request '${requestId}' not found`);
+        return makeResult(
+          'approval_check',
+          false,
+          '',
+          start,
+          `Approval request '${requestId}' not found`,
+        );
       }
 
       return makeResult(
@@ -266,8 +330,13 @@ const approvalCheckTool: Tool = {
         start,
       );
     } catch (error) {
-      return makeResult('approval_check', false, '', start,
-        `Failed to check approval: ${error instanceof Error ? error.message : String(error)}`);
+      return makeResult(
+        'approval_check',
+        false,
+        '',
+        start,
+        `Failed to check approval: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   },
 };
@@ -277,7 +346,12 @@ const approvalListTool: Tool = {
     name: 'approval_list',
     description: 'List approval requests filtered by status',
     params: [
-      { name: 'status', type: 'string', description: 'Filter by status: pending, approved, denied, or all', required: false },
+      {
+        name: 'status',
+        type: 'string',
+        description: 'Filter by status: pending, approved, denied, or all',
+        required: false,
+      },
       { name: 'limit', type: 'number', description: 'Max results (default 20)', required: false },
     ],
     capabilities: ['tools'],
@@ -287,9 +361,17 @@ const approvalListTool: Tool = {
     const start = Date.now();
     try {
       const statusFilter = (args.status as string) ?? 'all';
-      if (statusFilter !== 'all' && !VALID_STATUSES.includes(statusFilter as typeof VALID_STATUSES[number])) {
-        return makeResult('approval_list', false, '', start,
-          `Invalid status '${statusFilter}'. Must be one of: all, pending, approved, denied`);
+      if (
+        statusFilter !== 'all' &&
+        !VALID_STATUSES.includes(statusFilter as typeof VALID_STATUSES[number])
+      ) {
+        return makeResult(
+          'approval_list',
+          false,
+          '',
+          start,
+          `Invalid status '${statusFilter}'. Must be one of: all, pending, approved, denied`,
+        );
       }
 
       const limit = typeof args.limit === 'number' ? Math.max(1, Math.floor(args.limit)) : 20;
@@ -322,8 +404,13 @@ const approvalListTool: Tool = {
         start,
       );
     } catch (error) {
-      return makeResult('approval_list', false, '', start,
-        `Failed to list approvals: ${error instanceof Error ? error.message : String(error)}`);
+      return makeResult(
+        'approval_list',
+        false,
+        '',
+        start,
+        `Failed to list approvals: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   },
 };
@@ -333,7 +420,12 @@ const approvalCancelTool: Tool = {
     name: 'approval_cancel',
     description: 'Cancel a pending approval request',
     params: [
-      { name: 'request_id', type: 'string', description: 'The ID of the approval request', required: true },
+      {
+        name: 'request_id',
+        type: 'string',
+        description: 'The ID of the approval request',
+        required: true,
+      },
       { name: 'reason', type: 'string', description: 'Reason for cancellation', required: false },
     ],
     capabilities: ['tools'],
@@ -344,17 +436,34 @@ const approvalCancelTool: Tool = {
     try {
       const requestId = args.request_id;
       if (!requestId || typeof requestId !== 'string') {
-        return makeResult('approval_cancel', false, '', start, 'request_id must be a non-empty string');
+        return makeResult(
+          'approval_cancel',
+          false,
+          '',
+          start,
+          'request_id must be a non-empty string',
+        );
       }
 
       const request = approvalQueue.get(requestId as string);
       if (!request) {
-        return makeResult('approval_cancel', false, '', start, `Approval request '${requestId}' not found`);
+        return makeResult(
+          'approval_cancel',
+          false,
+          '',
+          start,
+          `Approval request '${requestId}' not found`,
+        );
       }
 
       if (request.status !== 'pending') {
-        return makeResult('approval_cancel', false, '', start,
-          `Cannot cancel request '${requestId}': status is '${request.status}'`);
+        return makeResult(
+          'approval_cancel',
+          false,
+          '',
+          start,
+          `Cannot cancel request '${requestId}': status is '${request.status}'`,
+        );
       }
 
       const handle = timeoutHandles.get(requestId as string);
@@ -380,8 +489,13 @@ const approvalCancelTool: Tool = {
         start,
       );
     } catch (error) {
-      return makeResult('approval_cancel', false, '', start,
-        `Failed to cancel approval: ${error instanceof Error ? error.message : String(error)}`);
+      return makeResult(
+        'approval_cancel',
+        false,
+        '',
+        start,
+        `Failed to cancel approval: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   },
 };
@@ -391,8 +505,18 @@ const approvalPolicyTool: Tool = {
     name: 'approval_policy',
     description: 'View or update the approval policy rules',
     params: [
-      { name: 'action', type: 'string', description: "View or update policy rules (default 'view')", required: false },
-      { name: 'rules', type: 'string', description: "JSON array of rule objects (required when action is 'update')", required: false },
+      {
+        name: 'action',
+        type: 'string',
+        description: "View or update policy rules (default 'view')",
+        required: false,
+      },
+      {
+        name: 'rules',
+        type: 'string',
+        description: "JSON array of rule objects (required when action is 'update')",
+        required: false,
+      },
     ],
     capabilities: ['tools'],
   },
@@ -402,8 +526,13 @@ const approvalPolicyTool: Tool = {
     try {
       const policyAction = (args.action as string) ?? 'view';
       if (!VALID_POLICY_ACTIONS.includes(policyAction as typeof VALID_POLICY_ACTIONS[number])) {
-        return makeResult('approval_policy', false, '', start,
-          `Invalid action '${policyAction}'. Must be 'view' or 'update'`);
+        return makeResult(
+          'approval_policy',
+          false,
+          '',
+          start,
+          `Invalid action '${policyAction}'. Must be 'view' or 'update'`,
+        );
       }
 
       if (policyAction === 'view') {
@@ -422,7 +551,13 @@ const approvalPolicyTool: Tool = {
 
       const rulesArg = args.rules;
       if (!rulesArg || typeof rulesArg !== 'string') {
-        return makeResult('approval_policy', false, '', start, 'rules must be a JSON string when action is update');
+        return makeResult(
+          'approval_policy',
+          false,
+          '',
+          start,
+          'rules must be a JSON string when action is update',
+        );
       }
 
       let parsedRules: ApprovalPolicyRule[];
@@ -438,11 +573,22 @@ const approvalPolicyTool: Tool = {
 
       for (const rule of parsedRules) {
         if (!rule.tool_name || typeof rule.tool_name !== 'string') {
-          return makeResult('approval_policy', false, '', start, 'Each rule must have a tool_name string');
+          return makeResult(
+            'approval_policy',
+            false,
+            '',
+            start,
+            'Each rule must have a tool_name string',
+          );
         }
         if (!rule.min_risk || !VALID_RISK_LEVELS.includes(rule.min_risk)) {
-          return makeResult('approval_policy', false, '', start,
-            'Each rule must have a valid min_risk: low, medium, high, or critical');
+          return makeResult(
+            'approval_policy',
+            false,
+            '',
+            start,
+            'Each rule must have a valid min_risk: low, medium, high, or critical',
+          );
         }
         rule.enabled = rule.enabled !== false;
       }
@@ -459,8 +605,13 @@ const approvalPolicyTool: Tool = {
         start,
       );
     } catch (error) {
-      return makeResult('approval_policy', false, '', start,
-        `Failed to manage policy: ${error instanceof Error ? error.message : String(error)}`);
+      return makeResult(
+        'approval_policy',
+        false,
+        '',
+        start,
+        `Failed to manage policy: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   },
 };
@@ -484,7 +635,13 @@ const approvalStatsTool: Tool = {
       if (sinceArg && typeof sinceArg === 'string') {
         sinceDate = new Date(sinceArg);
         if (isNaN(sinceDate.getTime())) {
-          return makeResult('approval_stats', false, '', start, 'since must be a valid ISO date string');
+          return makeResult(
+            'approval_stats',
+            false,
+            '',
+            start,
+            'since must be a valid ISO date string',
+          );
         }
       }
 
@@ -529,18 +686,26 @@ const approvalStatsTool: Tool = {
         start,
       );
     } catch (error) {
-      return makeResult('approval_stats', false, '', start,
-        `Failed to compute stats: ${error instanceof Error ? error.message : String(error)}`);
+      return makeResult(
+        'approval_stats',
+        false,
+        '',
+        start,
+        `Failed to compute stats: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   },
 };
 
 export async function onLoad(ctx: PluginContext): Promise<void> {
   try {
-    const loadedConfig = await (ctx.config as Record<string, unknown>).get?.() as Partial<PluginConfig> | undefined;
+    const loadedConfig = await (ctx.config as Record<string, unknown>).get?.() as
+      | Partial<PluginConfig>
+      | undefined;
     if (loadedConfig) {
       pluginConfig = {
-        defaultTimeoutMinutes: loadedConfig.defaultTimeoutMinutes ?? pluginConfig.defaultTimeoutMinutes,
+        defaultTimeoutMinutes: loadedConfig.defaultTimeoutMinutes ??
+          pluginConfig.defaultTimeoutMinutes,
         autoDenyOnTimeout: loadedConfig.autoDenyOnTimeout ?? pluginConfig.autoDenyOnTimeout,
         requireApprovalFor: loadedConfig.requireApprovalFor ?? pluginConfig.requireApprovalFor,
         notifySlack: loadedConfig.notifySlack,
@@ -559,7 +724,6 @@ export async function onUnload(_ctx: PluginContext): Promise<void> {
   }
   timeoutHandles.clear();
 }
-
 
 export const tools: Tool[] = [
   approvalRequestTool,
