@@ -1,6 +1,24 @@
-# Changelog — Human-in-the-Loop Approval Workflow
+# Changelog
 
+## [Unreleased]
 
+### Added
+- Structured logging via ctx.logger in lifecycle hooks
+
+### Changed
+- Renamed manifest file from `cortex.json` to `manifest.json` for consistency with Cortex standard
+- Standardized UI section structure to `ui.settings` format
+- Normalized parameter naming: `defaultValue` → `default`, `options` → `enum`
+- Added `homepage` field with repository URL
+- Added `dependencies` field to manifest
+
+### Fixed
+- Fixed incorrect type cast on ctx.config that shadowed the get() method.
+
+## [1.0.2] — 2026-06-15
+
+### Added
+- Initial release
 ## [1.0.2] — 2026-06-17
 
 ### Fixed

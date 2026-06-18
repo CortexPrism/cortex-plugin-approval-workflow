@@ -1,6 +1,6 @@
 {
   "name": "cortex-plugin-approval-workflow",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Human-in-the-Loop Approval \u2014 pauses agent execution at critical decision points and routes to a human reviewer via Slack/Discord/Web UI with diff previews and one-click approve/deny",
   "kind": "esm",
   "entryPoint": "mod.ts",
@@ -152,7 +152,8 @@
             "label": "Require Approval For",
             "description": "Minimum risk level that requires human approval",
             "default": "high_and_critical",
-            "options": [
+            "key": "requireApprovalFor",
+            "enum": [
               {
                 "label": "Critical Only",
                 "value": "critical_only"
@@ -169,8 +170,7 @@
                 "label": "All",
                 "value": "all"
               }
-            ],
-            "key": "requireApprovalFor"
+            ]
           }
         ]
       },
@@ -195,6 +195,7 @@
       }
     ]
   },
+  "dependencies": {},
   "peerDependencies": {
     "cortex": ">=1.0.0"
   },
@@ -206,5 +207,6 @@
   },
   "events": [
     "tool:pre-execute"
-  ]
+  ],
+  "homepage": "https://github.com/CortexPrism/cortex-plugin-approval-workflow"
 }

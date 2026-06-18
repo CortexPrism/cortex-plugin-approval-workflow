@@ -698,10 +698,9 @@ const approvalStatsTool: Tool = {
 };
 
 export async function onLoad(ctx: PluginContext): Promise<void> {
+  ctx.logger.info(`[cortex-plugin-approval-workflow] Loaded`);
   try {
-    const loadedConfig = await (ctx.config as Record<string, unknown>).get?.() as
-      | Partial<PluginConfig>
-      | undefined;
+    const loadedConfig = await ctx.config.get<Partial<PluginConfig>>();
     if (loadedConfig) {
       pluginConfig = {
         defaultTimeoutMinutes: loadedConfig.defaultTimeoutMinutes ??
