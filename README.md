@@ -1,8 +1,9 @@
 # Cortex Plugin — Approval Workflow
 
-Human-in-the-Loop Approval plugin for CortexPrism. Pauses agent execution at critical decision
-points (file writes, shell commands, PR merges) and routes to a human reviewer via Slack, Discord,
-or Web UI with diff previews and one-click approve/deny.
+Human-in-the-Loop Approval plugin for CortexPrism. Pauses agent execution at
+critical decision points (file writes, shell commands, PR merges) and routes to
+a human reviewer via Slack, Discord, or Web UI with diff previews and one-click
+approve/deny.
 
 ## Installation
 
@@ -70,14 +71,15 @@ Configure via the plugin UI or in `~/.cortex/config.json`:
 
 ### approval_request
 
-Create an approval request for a pending action. Pauses agent execution and routes to human
-reviewers.
+Create an approval request for a pending action. Pauses agent execution and
+routes to human reviewers.
 
 **Parameters:**
 
 - `action` (string, required) — Description of what needs approval
 - `details` (string, required) — Diff, command, or change details to review
-- `risk_level` (string) — `low`, `medium`, `high`, or `critical` (default `medium`)
+- `risk_level` (string) — `low`, `medium`, `high`, or `critical` (default
+  `medium`)
 - `timeout_minutes` (number) — Override default timeout (default 30)
 - `auto_deny_on_timeout` (boolean) — Override auto-deny behavior (default true)
 
@@ -177,8 +179,9 @@ cortex tool call approval_stats --since "2026-06-01T00:00:00Z"
 
 ## Pre-Middleware
 
-The plugin registers a `preMiddleware` hook that fires before every tool execution. It checks the
-active policy rules and blocks tools that require human approval.
+The plugin registers a `preMiddleware` hook that fires before every tool
+execution. It checks the active policy rules and blocks tools that require human
+approval.
 
 **Integration example:**
 
@@ -197,8 +200,9 @@ active policy rules and blocks tools that require human approval.
 }
 ```
 
-When a tool requiring approval is invoked, the middleware blocks execution and instructs the agent
-to call `approval_request` first. The agent pauses until the request is approved or denied.
+When a tool requiring approval is invoked, the middleware blocks execution and
+instructs the agent to call `approval_request` first. The agent pauses until the
+request is approved or denied.
 
 ## Capabilities
 
@@ -226,13 +230,13 @@ Default policy rules (editable via `approval_policy` tool):
 ## Auto-Deny Timeout
 
 Each approval request has a configurable timeout. When the timeout expires and
-`auto_deny_on_timeout` is enabled, the request is automatically denied. The default timeout is 30
-minutes.
+`auto_deny_on_timeout` is enabled, the request is automatically denied. The
+default timeout is 30 minutes.
 
 ## Notifications
 
-Configure Slack or Discord webhook URLs in the plugin settings to receive real-time notifications
-when approval requests are created.
+Configure Slack or Discord webhook URLs in the plugin settings to receive
+real-time notifications when approval requests are created.
 
 ## Development
 
@@ -263,7 +267,8 @@ cortex chat --plugin cortex-plugin-approval-workflow
 - Configure webhooks for instant reviewer notifications
 - Use descriptive `action` and `details` fields so reviewers have full context
 - Review policy rules regularly and tune min_risk thresholds
-- Keep default timeout short enough to not block CI but long enough for manual review
+- Keep default timeout short enough to not block CI but long enough for manual
+  review
 
 ## License
 

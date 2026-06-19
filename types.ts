@@ -15,7 +15,7 @@
 
 export interface ToolParam {
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  type: "string" | "number" | "boolean" | "object" | "array";
   description: string;
   required?: boolean;
   enum?: string[];
