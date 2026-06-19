@@ -1,12 +1,17 @@
 // deno-lint-ignore-file
-import type { PluginContext, Tool, ToolCallResult, ToolContext } from './types.ts';
+import type {
+  PluginContext,
+  Tool,
+  ToolCallResult,
+  ToolContext,
+} from "./types.ts";
 
 interface ApprovalRequest {
   id: string;
   action: string;
   details: string;
-  risk_level: 'low' | 'medium' | 'high' | 'critical';
-  status: 'pending' | 'approved' | 'denied';
+  risk_level: "low" | "medium" | "high" | "critical";
+  status: "pending" | "approved" | "denied";
   created_at: string;
   updated_at: string;
   timeout_minutes: number;
@@ -15,9 +20,9 @@ interface ApprovalRequest {
   reviewer_comment?: string;
 }
 
-const VALID_RISK_LEVELS = ['low', 'medium', 'high', 'critical'] as const;
-const VALID_STATUSES = ['pending', 'approved', 'denied'] as const;
-const VALID_POLICY_ACTIONS = ['view', 'update'] as const;
+const VALID_RISK_LEVELS = ["low", "medium", "high", "critical"] as const;
+const VALID_STATUSES = ["pending", "approved", "denied"] as const;
+const VALID_POLICY_ACTIONS = ["view", "update"] as const;
 
 let approvalQueue: Map<string, ApprovalRequest> = new Map();
 let timeoutHandles: Map<string, number> = new Map();
@@ -25,7 +30,11 @@ let timeoutHandles: Map<string, number> = new Map();
 interface PluginConfig {
   defaultTimeoutMinutes: number;
   autoDenyOnTimeout: boolean;
-  requireApprovalFor: 'critical_only' | 'high_and_critical' | 'medium_and_above' | 'all';
+  requireApprovalFor:
+    | "critical_only"
+    | "high_and_critical"
+    | "medium_and_above"
+    | "all";
   notifySlack?: string;
   notifyDiscord?: string;
   policyRules: ApprovalPolicyRule[];
@@ -33,19 +42,19 @@ interface PluginConfig {
 
 interface ApprovalPolicyRule {
   tool_name: string;
-  min_risk: 'low' | 'medium' | 'high' | 'critical';
+  min_risk: "low" | "medium" | "high" | "critical";
   enabled: boolean;
 }
 
 const DEFAULT_POLICY_RULES: ApprovalPolicyRule[] = [
-  { tool_name: 'shell:run', min_risk: 'medium', enabled: true },
-  { tool_name: 'shell:exec', min_risk: 'medium', enabled: true },
-  { tool_name: 'fs:write', min_risk: 'high', enabled: true },
-  { tool_name: 'fs:delete', min_risk: 'critical', enabled: true },
-  { tool_name: 'git:push', min_risk: 'high', enabled: true },
-  { tool_name: 'git:merge', min_risk: 'critical', enabled: true },
-  { tool_name: 'pr:merge', min_risk: 'critical', enabled: true },
-  { tool_name: 'network:fetch', min_risk: 'medium', enabled: true },
+  { tool_name: "shell:run", min_risk: "medium", enabled: true },
+  { tool_name: "shell:exec", min_risk: "medium", enabled: true },
+  { tool_name: "fs:write", min_risk: "high", enabled: true },
+  { tool_name: "fs:delete", min_risk: "critical", enabled: true },
+  { tool_name: "git:push", min_risk: "high", enabled: true },
+  { tool_name: "git:merge", min_risk: "critical", enabled: true },
+  { tool_name: "pr:merge", min_risk: "critical", enabled: true },
+  { tool_name: "network:fetch", min_risk: "medium", enabled: true },
 ];
 
 const RISK_LEVEL_WEIGHT: Record<string, number> = {
@@ -58,7 +67,7 @@ const RISK_LEVEL_WEIGHT: Record<string, number> = {
 let pluginConfig: PluginConfig = {
   defaultTimeoutMinutes: 30,
   autoDenyOnTimeout: true,
-  requireApprovalFor: 'high_and_critical',
+  requireApprovalFor: "high_and_critical",
   policyRules: [...DEFAULT_POLICY_RULES],
 };
 
@@ -67,10 +76,12 @@ function generateRequestId(): string {
   crypto.getRandomValues(bytes);
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${
-    hex.slice(20, 32)
-  }`;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
+    "",
+  );
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${
+    hex.slice(16, 20)
+  }-${hex.slice(20, 32)}`;
 }
 
 function riskExceedsThreshold(riskLevel: string, threshold: string): boolean {
@@ -78,20 +89,20 @@ function riskExceedsThreshold(riskLevel: string, threshold: string): boolean {
   let minWeight: number;
 
   switch (threshold) {
-    case 'critical_only':
-      minWeight = RISK_LEVEL_WEIGHT['critical'];
+    case "critical_only":
+      minWeight = RISK_LEVEL_WEIGHT["critical"];
       break;
-    case 'high_and_critical':
-      minWeight = RISK_LEVEL_WEIGHT['high'];
+    case "high_and_critical":
+      minWeight = RISK_LEVEL_WEIGHT["high"];
       break;
-    case 'medium_and_above':
-      minWeight = RISK_LEVEL_WEIGHT['medium'];
+    case "medium_and_above":
+      minWeight = RISK_LEVEL_WEIGHT["medium"];
       break;
-    case 'all':
-      minWeight = RISK_LEVEL_WEIGHT['low'];
+    case "all":
+      minWeight = RISK_LEVEL_WEIGHT["low"];
       break;
     default:
-      minWeight = RISK_LEVEL_WEIGHT['high'];
+      minWeight = RISK_LEVEL_WEIGHT["high"];
   }
 
   return riskWeight >= minWeight;
@@ -104,10 +115,10 @@ function startAutoDenyTimer(requestId: string, timeoutMinutes: number): void {
   const ms = timeoutMinutes * 60 * 1000;
   const handle = setTimeout(() => {
     const req = approvalQueue.get(requestId);
-    if (req && req.status === 'pending' && req.auto_deny_on_timeout) {
-      req.status = 'denied';
+    if (req && req.status === "pending" && req.auto_deny_on_timeout) {
+      req.status = "denied";
       req.updated_at = new Date().toISOString();
-      req.reviewer_comment = 'Auto-denied: timeout expired';
+      req.reviewer_comment = "Auto-denied: timeout expired";
       approvalQueue.set(requestId, req);
     }
     timeoutHandles.delete(requestId);
@@ -133,86 +144,93 @@ function makeResult(
 }
 
 function getApprovalThreshold(riskLevel: string): string {
-  return pluginConfig.requireApprovalFor ?? 'high_and_critical';
+  return pluginConfig.requireApprovalFor ?? "high_and_critical";
 }
 
 const approvalRequestTool: Tool = {
   definition: {
-    name: 'approval_request',
-    description: 'Create an approval request for a pending action',
+    name: "approval_request",
+    description: "Create an approval request for a pending action",
     params: [
       {
-        name: 'action',
-        type: 'string',
-        description: 'Description of what needs approval',
+        name: "action",
+        type: "string",
+        description: "Description of what needs approval",
         required: true,
       },
       {
-        name: 'details',
-        type: 'string',
-        description: 'Diff, command, or change details',
+        name: "details",
+        type: "string",
+        description: "Diff, command, or change details",
         required: true,
       },
       {
-        name: 'risk_level',
-        type: 'string',
-        description: 'Risk level: low, medium, high, or critical',
+        name: "risk_level",
+        type: "string",
+        description: "Risk level: low, medium, high, or critical",
         required: false,
       },
       {
-        name: 'timeout_minutes',
-        type: 'number',
-        description: 'Minutes before timeout',
+        name: "timeout_minutes",
+        type: "number",
+        description: "Minutes before timeout",
         required: false,
       },
       {
-        name: 'auto_deny_on_timeout',
-        type: 'boolean',
-        description: 'Auto-deny on timeout',
+        name: "auto_deny_on_timeout",
+        type: "boolean",
+        description: "Auto-deny on timeout",
         required: false,
       },
     ],
-    capabilities: ['tools'],
+    capabilities: ["tools"],
   },
 
-  execute: async (args: Record<string, unknown>, _ctx: ToolContext): Promise<ToolCallResult> => {
+  execute: async (
+    args: Record<string, unknown>,
+    _ctx: ToolContext,
+  ): Promise<ToolCallResult> => {
     const start = Date.now();
     try {
       const action = args.action;
-      if (!action || typeof action !== 'string') {
+      if (!action || typeof action !== "string") {
         return makeResult(
-          'approval_request',
+          "approval_request",
           false,
-          '',
+          "",
           start,
-          'action must be a non-empty string',
+          "action must be a non-empty string",
         );
       }
 
       const details = args.details;
-      if (!details || typeof details !== 'string') {
+      if (!details || typeof details !== "string") {
         return makeResult(
-          'approval_request',
+          "approval_request",
           false,
-          '',
+          "",
           start,
-          'details must be a non-empty string',
+          "details must be a non-empty string",
         );
       }
 
-      let riskLevel = (args.risk_level as string) ?? 'medium';
-      if (!VALID_RISK_LEVELS.includes(riskLevel as typeof VALID_RISK_LEVELS[number])) {
-        riskLevel = 'medium';
+      let riskLevel = (args.risk_level as string) ?? "medium";
+      if (
+        !VALID_RISK_LEVELS.includes(
+          riskLevel as typeof VALID_RISK_LEVELS[number],
+        )
+      ) {
+        riskLevel = "medium";
       }
 
       const threshold = getApprovalThreshold(riskLevel);
       if (!riskExceedsThreshold(riskLevel, threshold)) {
         return makeResult(
-          'approval_request',
+          "approval_request",
           true,
           JSON.stringify({
             id: null,
-            status: 'auto_approved',
+            status: "auto_approved",
             message:
               `Risk level '${riskLevel}' is below threshold '${threshold}'. No approval required.`,
           }),
@@ -220,11 +238,11 @@ const approvalRequestTool: Tool = {
         );
       }
 
-      const timeoutMinutes = typeof args.timeout_minutes === 'number'
+      const timeoutMinutes = typeof args.timeout_minutes === "number"
         ? args.timeout_minutes
         : pluginConfig.defaultTimeoutMinutes;
 
-      const autoDeny = typeof args.auto_deny_on_timeout === 'boolean'
+      const autoDeny = typeof args.auto_deny_on_timeout === "boolean"
         ? args.auto_deny_on_timeout
         : pluginConfig.autoDenyOnTimeout;
 
@@ -235,8 +253,8 @@ const approvalRequestTool: Tool = {
         id,
         action: action as string,
         details: details as string,
-        risk_level: riskLevel as ApprovalRequest['risk_level'],
-        status: 'pending',
+        risk_level: riskLevel as ApprovalRequest["risk_level"],
+        status: "pending",
         created_at: now,
         updated_at: now,
         timeout_minutes: timeoutMinutes,
@@ -247,25 +265,25 @@ const approvalRequestTool: Tool = {
       startAutoDenyTimer(id, timeoutMinutes);
 
       return makeResult(
-        'approval_request',
+        "approval_request",
         true,
         JSON.stringify({
           id,
-          status: 'pending',
+          status: "pending",
           action: request.action,
           risk_level: request.risk_level,
           timeout_minutes: request.timeout_minutes,
           auto_deny_on_timeout: request.auto_deny_on_timeout,
           created_at: request.created_at,
-          message: 'Approval request created. Awaiting human review.',
+          message: "Approval request created. Awaiting human review.",
         }),
         start,
       );
     } catch (error) {
       return makeResult(
-        'approval_request',
+        "approval_request",
         false,
-        '',
+        "",
         start,
         `Failed to create approval request: ${
           error instanceof Error ? error.message : String(error)
@@ -277,46 +295,49 @@ const approvalRequestTool: Tool = {
 
 const approvalCheckTool: Tool = {
   definition: {
-    name: 'approval_check',
-    description: 'Check the status of an approval request',
+    name: "approval_check",
+    description: "Check the status of an approval request",
     params: [
       {
-        name: 'request_id',
-        type: 'string',
-        description: 'The ID of the approval request',
+        name: "request_id",
+        type: "string",
+        description: "The ID of the approval request",
         required: true,
       },
     ],
-    capabilities: ['tools'],
+    capabilities: ["tools"],
   },
 
-  execute: async (args: Record<string, unknown>, _ctx: ToolContext): Promise<ToolCallResult> => {
+  execute: async (
+    args: Record<string, unknown>,
+    _ctx: ToolContext,
+  ): Promise<ToolCallResult> => {
     const start = Date.now();
     try {
       const requestId = args.request_id;
-      if (!requestId || typeof requestId !== 'string') {
+      if (!requestId || typeof requestId !== "string") {
         return makeResult(
-          'approval_check',
+          "approval_check",
           false,
-          '',
+          "",
           start,
-          'request_id must be a non-empty string',
+          "request_id must be a non-empty string",
         );
       }
 
       const request = approvalQueue.get(requestId as string);
       if (!request) {
         return makeResult(
-          'approval_check',
+          "approval_check",
           false,
-          '',
+          "",
           start,
           `Approval request '${requestId}' not found`,
         );
       }
 
       return makeResult(
-        'approval_check',
+        "approval_check",
         true,
         JSON.stringify({
           id: request.id,
@@ -332,11 +353,13 @@ const approvalCheckTool: Tool = {
       );
     } catch (error) {
       return makeResult(
-        'approval_check',
+        "approval_check",
         false,
-        '',
+        "",
         start,
-        `Failed to check approval: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to check approval: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
     }
   },
@@ -344,42 +367,52 @@ const approvalCheckTool: Tool = {
 
 const approvalListTool: Tool = {
   definition: {
-    name: 'approval_list',
-    description: 'List approval requests filtered by status',
+    name: "approval_list",
+    description: "List approval requests filtered by status",
     params: [
       {
-        name: 'status',
-        type: 'string',
-        description: 'Filter by status: pending, approved, denied, or all',
+        name: "status",
+        type: "string",
+        description: "Filter by status: pending, approved, denied, or all",
         required: false,
       },
-      { name: 'limit', type: 'number', description: 'Max results (default 20)', required: false },
+      {
+        name: "limit",
+        type: "number",
+        description: "Max results (default 20)",
+        required: false,
+      },
     ],
-    capabilities: ['tools'],
+    capabilities: ["tools"],
   },
 
-  execute: async (args: Record<string, unknown>, _ctx: ToolContext): Promise<ToolCallResult> => {
+  execute: async (
+    args: Record<string, unknown>,
+    _ctx: ToolContext,
+  ): Promise<ToolCallResult> => {
     const start = Date.now();
     try {
-      const statusFilter = (args.status as string) ?? 'all';
+      const statusFilter = (args.status as string) ?? "all";
       if (
-        statusFilter !== 'all' &&
+        statusFilter !== "all" &&
         !VALID_STATUSES.includes(statusFilter as typeof VALID_STATUSES[number])
       ) {
         return makeResult(
-          'approval_list',
+          "approval_list",
           false,
-          '',
+          "",
           start,
           `Invalid status '${statusFilter}'. Must be one of: all, pending, approved, denied`,
         );
       }
 
-      const limit = typeof args.limit === 'number' ? Math.max(1, Math.floor(args.limit)) : 20;
+      const limit = typeof args.limit === "number"
+        ? Math.max(1, Math.floor(args.limit))
+        : 20;
 
       let requests = Array.from(approvalQueue.values());
 
-      if (statusFilter !== 'all') {
+      if (statusFilter !== "all") {
         requests = requests.filter((r) => r.status === statusFilter);
       }
 
@@ -388,7 +421,7 @@ const approvalListTool: Tool = {
       const sliced = requests.slice(0, limit);
 
       return makeResult(
-        'approval_list',
+        "approval_list",
         true,
         JSON.stringify({
           total: requests.length,
@@ -406,11 +439,13 @@ const approvalListTool: Tool = {
       );
     } catch (error) {
       return makeResult(
-        'approval_list',
+        "approval_list",
         false,
-        '',
+        "",
         start,
-        `Failed to list approvals: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to list approvals: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
     }
   },
@@ -418,50 +453,58 @@ const approvalListTool: Tool = {
 
 const approvalCancelTool: Tool = {
   definition: {
-    name: 'approval_cancel',
-    description: 'Cancel a pending approval request',
+    name: "approval_cancel",
+    description: "Cancel a pending approval request",
     params: [
       {
-        name: 'request_id',
-        type: 'string',
-        description: 'The ID of the approval request',
+        name: "request_id",
+        type: "string",
+        description: "The ID of the approval request",
         required: true,
       },
-      { name: 'reason', type: 'string', description: 'Reason for cancellation', required: false },
+      {
+        name: "reason",
+        type: "string",
+        description: "Reason for cancellation",
+        required: false,
+      },
     ],
-    capabilities: ['tools'],
+    capabilities: ["tools"],
   },
 
-  execute: async (args: Record<string, unknown>, _ctx: ToolContext): Promise<ToolCallResult> => {
+  execute: async (
+    args: Record<string, unknown>,
+    _ctx: ToolContext,
+  ): Promise<ToolCallResult> => {
     const start = Date.now();
     try {
       const requestId = args.request_id;
-      if (!requestId || typeof requestId !== 'string') {
+      if (!requestId || typeof requestId !== "string") {
         return makeResult(
-          'approval_cancel',
+          "approval_cancel",
           false,
-          '',
+          "",
           start,
-          'request_id must be a non-empty string',
+          "request_id must be a non-empty string",
         );
       }
 
       const request = approvalQueue.get(requestId as string);
       if (!request) {
         return makeResult(
-          'approval_cancel',
+          "approval_cancel",
           false,
-          '',
+          "",
           start,
           `Approval request '${requestId}' not found`,
         );
       }
 
-      if (request.status !== 'pending') {
+      if (request.status !== "pending") {
         return makeResult(
-          'approval_cancel',
+          "approval_cancel",
           false,
-          '',
+          "",
           start,
           `Cannot cancel request '${requestId}': status is '${request.status}'`,
         );
@@ -473,29 +516,32 @@ const approvalCancelTool: Tool = {
         timeoutHandles.delete(requestId as string);
       }
 
-      request.status = 'denied';
+      request.status = "denied";
       request.updated_at = new Date().toISOString();
-      request.reviewer_comment = (args.reason as string) ?? 'Cancelled by agent';
+      request.reviewer_comment = (args.reason as string) ??
+        "Cancelled by agent";
       approvalQueue.set(requestId as string, request);
 
       return makeResult(
-        'approval_cancel',
+        "approval_cancel",
         true,
         JSON.stringify({
           id: request.id,
-          status: 'denied',
+          status: "denied",
           reason: request.reviewer_comment,
-          message: 'Approval request cancelled.',
+          message: "Approval request cancelled.",
         }),
         start,
       );
     } catch (error) {
       return makeResult(
-        'approval_cancel',
+        "approval_cancel",
         false,
-        '',
+        "",
         start,
-        `Failed to cancel approval: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to cancel approval: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
     }
   },
@@ -503,42 +549,50 @@ const approvalCancelTool: Tool = {
 
 const approvalPolicyTool: Tool = {
   definition: {
-    name: 'approval_policy',
-    description: 'View or update the approval policy rules',
+    name: "approval_policy",
+    description: "View or update the approval policy rules",
     params: [
       {
-        name: 'action',
-        type: 'string',
+        name: "action",
+        type: "string",
         description: "View or update policy rules (default 'view')",
         required: false,
       },
       {
-        name: 'rules',
-        type: 'string',
-        description: "JSON array of rule objects (required when action is 'update')",
+        name: "rules",
+        type: "string",
+        description:
+          "JSON array of rule objects (required when action is 'update')",
         required: false,
       },
     ],
-    capabilities: ['tools'],
+    capabilities: ["tools"],
   },
 
-  execute: async (args: Record<string, unknown>, _ctx: ToolContext): Promise<ToolCallResult> => {
+  execute: async (
+    args: Record<string, unknown>,
+    _ctx: ToolContext,
+  ): Promise<ToolCallResult> => {
     const start = Date.now();
     try {
-      const policyAction = (args.action as string) ?? 'view';
-      if (!VALID_POLICY_ACTIONS.includes(policyAction as typeof VALID_POLICY_ACTIONS[number])) {
+      const policyAction = (args.action as string) ?? "view";
+      if (
+        !VALID_POLICY_ACTIONS.includes(
+          policyAction as typeof VALID_POLICY_ACTIONS[number],
+        )
+      ) {
         return makeResult(
-          'approval_policy',
+          "approval_policy",
           false,
-          '',
+          "",
           start,
           `Invalid action '${policyAction}'. Must be 'view' or 'update'`,
         );
       }
 
-      if (policyAction === 'view') {
+      if (policyAction === "view") {
         return makeResult(
-          'approval_policy',
+          "approval_policy",
           true,
           JSON.stringify({
             requireApprovalFor: pluginConfig.requireApprovalFor,
@@ -551,13 +605,13 @@ const approvalPolicyTool: Tool = {
       }
 
       const rulesArg = args.rules;
-      if (!rulesArg || typeof rulesArg !== 'string') {
+      if (!rulesArg || typeof rulesArg !== "string") {
         return makeResult(
-          'approval_policy',
+          "approval_policy",
           false,
-          '',
+          "",
           start,
-          'rules must be a JSON string when action is update',
+          "rules must be a JSON string when action is update",
         );
       }
 
@@ -565,30 +619,42 @@ const approvalPolicyTool: Tool = {
       try {
         parsedRules = JSON.parse(rulesArg);
       } catch {
-        return makeResult('approval_policy', false, '', start, 'rules must be a valid JSON array');
+        return makeResult(
+          "approval_policy",
+          false,
+          "",
+          start,
+          "rules must be a valid JSON array",
+        );
       }
 
       if (!Array.isArray(parsedRules)) {
-        return makeResult('approval_policy', false, '', start, 'rules must be a JSON array');
+        return makeResult(
+          "approval_policy",
+          false,
+          "",
+          start,
+          "rules must be a JSON array",
+        );
       }
 
       for (const rule of parsedRules) {
-        if (!rule.tool_name || typeof rule.tool_name !== 'string') {
+        if (!rule.tool_name || typeof rule.tool_name !== "string") {
           return makeResult(
-            'approval_policy',
+            "approval_policy",
             false,
-            '',
+            "",
             start,
-            'Each rule must have a tool_name string',
+            "Each rule must have a tool_name string",
           );
         }
         if (!rule.min_risk || !VALID_RISK_LEVELS.includes(rule.min_risk)) {
           return makeResult(
-            'approval_policy',
+            "approval_policy",
             false,
-            '',
+            "",
             start,
-            'Each rule must have a valid min_risk: low, medium, high, or critical',
+            "Each rule must have a valid min_risk: low, medium, high, or critical",
           );
         }
         rule.enabled = rule.enabled !== false;
@@ -597,21 +663,23 @@ const approvalPolicyTool: Tool = {
       pluginConfig.policyRules = parsedRules;
 
       return makeResult(
-        'approval_policy',
+        "approval_policy",
         true,
         JSON.stringify({
-          message: 'Policy rules updated.',
+          message: "Policy rules updated.",
           rules: pluginConfig.policyRules,
         }),
         start,
       );
     } catch (error) {
       return makeResult(
-        'approval_policy',
+        "approval_policy",
         false,
-        '',
+        "",
         start,
-        `Failed to manage policy: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to manage policy: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
     }
   },
@@ -619,29 +687,37 @@ const approvalPolicyTool: Tool = {
 
 const approvalStatsTool: Tool = {
   definition: {
-    name: 'approval_stats',
-    description: 'Get statistics about approval requests',
+    name: "approval_stats",
+    description: "Get statistics about approval requests",
     params: [
-      { name: 'since', type: 'string', description: 'ISO date filter', required: false },
+      {
+        name: "since",
+        type: "string",
+        description: "ISO date filter",
+        required: false,
+      },
     ],
-    capabilities: ['tools'],
+    capabilities: ["tools"],
   },
 
-  execute: async (args: Record<string, unknown>, _ctx: ToolContext): Promise<ToolCallResult> => {
+  execute: async (
+    args: Record<string, unknown>,
+    _ctx: ToolContext,
+  ): Promise<ToolCallResult> => {
     const start = Date.now();
     try {
       const sinceArg = args.since;
       let sinceDate: Date | null = null;
 
-      if (sinceArg && typeof sinceArg === 'string') {
+      if (sinceArg && typeof sinceArg === "string") {
         sinceDate = new Date(sinceArg);
         if (isNaN(sinceDate.getTime())) {
           return makeResult(
-            'approval_stats',
+            "approval_stats",
             false,
-            '',
+            "",
             start,
-            'since must be a valid ISO date string',
+            "since must be a valid ISO date string",
           );
         }
       }
@@ -653,33 +729,42 @@ const approvalStatsTool: Tool = {
       }
 
       const total = requests.length;
-      const pending = requests.filter((r) => r.status === 'pending').length;
-      const approved = requests.filter((r) => r.status === 'approved').length;
-      const denied = requests.filter((r) => r.status === 'denied').length;
+      const pending = requests.filter((r) => r.status === "pending").length;
+      const approved = requests.filter((r) => r.status === "approved").length;
+      const denied = requests.filter((r) => r.status === "denied").length;
 
-      const riskCounts: Record<string, number> = { low: 0, medium: 0, high: 0, critical: 0 };
+      const riskCounts: Record<string, number> = {
+        low: 0,
+        medium: 0,
+        high: 0,
+        critical: 0,
+      };
       for (const r of requests) {
         riskCounts[r.risk_level] = (riskCounts[r.risk_level] ?? 0) + 1;
       }
 
       let avgResponseTimeSec: number | null = null;
-      const responded = requests.filter((r) => r.status !== 'pending');
+      const responded = requests.filter((r) => r.status !== "pending");
       if (responded.length > 0) {
         const totalMs = responded.reduce((sum, r) => {
-          return sum + (new Date(r.updated_at).getTime() - new Date(r.created_at).getTime());
+          return sum +
+            (new Date(r.updated_at).getTime() -
+              new Date(r.created_at).getTime());
         }, 0);
         avgResponseTimeSec = Math.round((totalMs / responded.length) / 1000);
       }
 
       return makeResult(
-        'approval_stats',
+        "approval_stats",
         true,
         JSON.stringify({
           total,
           pending,
           approved,
           denied,
-          approval_rate: total > 0 ? Math.round((approved / total) * 100) / 100 : 0,
+          approval_rate: total > 0
+            ? Math.round((approved / total) * 100) / 100
+            : 0,
           avg_response_time_seconds: avgResponseTimeSec,
           by_risk_level: riskCounts,
           since: sinceArg ?? null,
@@ -688,11 +773,13 @@ const approvalStatsTool: Tool = {
       );
     } catch (error) {
       return makeResult(
-        'approval_stats',
+        "approval_stats",
         false,
-        '',
+        "",
         start,
-        `Failed to compute stats: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to compute stats: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
     }
   },
@@ -706,8 +793,10 @@ export async function onLoad(ctx: PluginContext): Promise<void> {
       pluginConfig = {
         defaultTimeoutMinutes: loadedConfig.defaultTimeoutMinutes ??
           pluginConfig.defaultTimeoutMinutes,
-        autoDenyOnTimeout: loadedConfig.autoDenyOnTimeout ?? pluginConfig.autoDenyOnTimeout,
-        requireApprovalFor: loadedConfig.requireApprovalFor ?? pluginConfig.requireApprovalFor,
+        autoDenyOnTimeout: loadedConfig.autoDenyOnTimeout ??
+          pluginConfig.autoDenyOnTimeout,
+        requireApprovalFor: loadedConfig.requireApprovalFor ??
+          pluginConfig.requireApprovalFor,
         notifySlack: loadedConfig.notifySlack,
         notifyDiscord: loadedConfig.notifyDiscord,
         policyRules: loadedConfig.policyRules ?? pluginConfig.policyRules,
