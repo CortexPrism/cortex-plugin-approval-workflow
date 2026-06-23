@@ -1,10 +1,5 @@
 // deno-lint-ignore-file
-import type {
-  PluginContext,
-  Tool,
-  ToolCallResult,
-  ToolContext,
-} from "./types.ts";
+import type { PluginContext, Tool, ToolCallResult } from "cortex/plugins";
 
 interface ApprovalRequest {
   id: string;
@@ -188,7 +183,7 @@ const approvalRequestTool: Tool = {
 
   execute: async (
     args: Record<string, unknown>,
-    _ctx: ToolContext,
+    _ctx: PluginContext,
   ): Promise<ToolCallResult> => {
     const start = Date.now();
     try {
@@ -310,7 +305,7 @@ const approvalCheckTool: Tool = {
 
   execute: async (
     args: Record<string, unknown>,
-    _ctx: ToolContext,
+    _ctx: PluginContext,
   ): Promise<ToolCallResult> => {
     const start = Date.now();
     try {
@@ -388,7 +383,7 @@ const approvalListTool: Tool = {
 
   execute: async (
     args: Record<string, unknown>,
-    _ctx: ToolContext,
+    _ctx: PluginContext,
   ): Promise<ToolCallResult> => {
     const start = Date.now();
     try {
@@ -474,7 +469,7 @@ const approvalCancelTool: Tool = {
 
   execute: async (
     args: Record<string, unknown>,
-    _ctx: ToolContext,
+    _ctx: PluginContext,
   ): Promise<ToolCallResult> => {
     const start = Date.now();
     try {
@@ -571,7 +566,7 @@ const approvalPolicyTool: Tool = {
 
   execute: async (
     args: Record<string, unknown>,
-    _ctx: ToolContext,
+    _ctx: PluginContext,
   ): Promise<ToolCallResult> => {
     const start = Date.now();
     try {
@@ -702,7 +697,7 @@ const approvalStatsTool: Tool = {
 
   execute: async (
     args: Record<string, unknown>,
-    _ctx: ToolContext,
+    _ctx: PluginContext,
   ): Promise<ToolCallResult> => {
     const start = Date.now();
     try {

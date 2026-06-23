@@ -1,6 +1,6 @@
 {
   "name": "cortex-plugin-approval-workflow",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Human-in-the-Loop Approval \u2014 pauses agent execution at critical decision points and routes to a human reviewer via Slack/Discord/Web UI with diff previews and one-click approve/deny",
   "kind": "esm",
   "entryPoint": "mod.ts",
@@ -137,23 +137,23 @@
             "type": "number",
             "label": "Default Timeout (minutes)",
             "description": "Minutes before a pending request times out",
-            "default": 30,
+            "defaultValue": 30,
             "key": "defaultTimeoutMinutes"
           },
           {
             "type": "boolean",
             "label": "Auto-Deny on Timeout",
             "description": "Automatically deny requests when the timeout expires",
-            "default": true,
+            "defaultValue": true,
             "key": "autoDenyOnTimeout"
           },
           {
             "type": "select",
             "label": "Require Approval For",
             "description": "Minimum risk level that requires human approval",
-            "default": "high_and_critical",
+            "defaultValue": "high_and_critical",
             "key": "requireApprovalFor",
-            "enum": [
+            "options": [
               {
                 "label": "Critical Only",
                 "value": "critical_only"
@@ -197,7 +197,7 @@
   },
   "dependencies": {},
   "peerDependencies": {
-    "cortex": ">=1.0.0"
+    "cortex": ">=0.51.0"
   },
   "aiDisclosure": {
     "tools": [
